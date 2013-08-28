@@ -1,6 +1,6 @@
 {
   "name": "estate",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "aggregate state on a single event emitter",
   "main": "index.js",
   "scripts": {

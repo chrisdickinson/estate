@@ -12,7 +12,7 @@ function Estate() {
 }
 
 var cons = Estate
-  , proto = cons.prototype = new EE
+  , proto = cons.prototype = Object.create(EE.prototype)
 
 proto.constructor = proto
 

@@ -1,7 +1,9 @@
 # estate
+[![Build
+Status](https://travis-ci.org/AWinterman/estate.png?branch=master)](https://travis-ci.org/AWinterman/estate)
 
-aggregate multiple event emitter events + data onto 
-a single event emitter that emits data events on change.
+aggregate multiple event emitter events + data into a readable stream of state
+objects.
 
 ```javascript
 var es = estate()
@@ -29,16 +31,37 @@ es.once('data', function(state) {
 })
 
 ee1.emit('thing') // since "one" and "two" are undefined, it'll clear those states
+```
+
+**or in terms of Streams2**
+
+```javascript
+
+es.on('readable', function() {
+  var state = es.read()
+})
+
+```
+
+**or just pipe:**
+
+```javascript
+es.pipe(debounce).pipe(make_xhr).pipe($(el))
 
 ```
 
 ## API
 
-#### es.listen(emitter, eventName, ['list', 'of', 'bindings']) -> es
+#### `es.listen(emitter, eventName, ['list', 'of', 'bindings'])` -> `es`
 
 listen to an `emitter` on `eventName`. when that emitter emits that event name,
-it will update the state object. the state object will then emit a `'data'` event
-containing the current state.
+it will update the state object. The state object will expose the current state by
+`.read()`.
+
+`estate` will buffer *only* the most recent state. This means its information
+is always up to date-- if you only read() when you are ready for more data, (or
+have the proper back pressure if your using it in flowing mode), debouncing is
+not required.
 
 ## License
 

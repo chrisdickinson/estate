@@ -53,9 +53,9 @@ test('works as expected', function(assert) {
 })
 
 
-test('Functions correctly as a pull stream', buffer_doesnt_grow)
+test('Functions correctly as a pull stream', pull_stream_works)
 
-function buffer_doesnt_grow(assert) {
+function pull_stream_works(assert) {
   var state1 = estate()
     , state2 = estate()
     , ee = new EE
@@ -72,17 +72,16 @@ function buffer_doesnt_grow(assert) {
   state2.listen(ee, 'beep', ['beep'])
 
   state1.on('readable', function() {
-    this.read().beep === values[i++]
+    var current_state
+
+    while(current_state = this.read()) {
+      assert.equal(current_state.beep, values[i++])
+    }
   })
 
   for(var j = 0, len = values.length; j < len; ++j) {
     ee.emit('beep', values[j])
-    assert.strictEqual(bufferlen(state1), 0)
-    assert.strictEqual(bufferlen(state2), 1)
   }
-
-  assert.strictEqual(bufferlen(state1), 0)
-  console.log(state2)
 
   assert.strictEqual(state2.state.beep, 'five')
   assert.strictEqual(state1.state.beep, 'five')
@@ -90,34 +89,4 @@ function buffer_doesnt_grow(assert) {
 
   assert.end()
 
-  function bufferlen(state) {
-    return state._readableState.buffer.length
-  }
-}
-
-test(
-    'Most recent state is the one that is emitted.'
-  , emits_most_recent
-)
-
-function emits_most_recent(assert) {
-  var obj_state = new estate()
-    , ee = new EE
-
-  obj_state.listen(ee, 'beep', ['beep'])
-
-  ee.emit('beep', 0)
-  ee.emit('beep', 1)
-  ee.emit('beep', 2)
-
-  var second_read
-    , first_read
-
-  // I'm cheating a little, because I know the stream is in a readable state.
-  first_read = obj_state.read()
-  second_read = obj_state.read()
-
-  assert.deepEqual(first_read, {beep: 2})
-  assert.deepEqual(second_read, {beep: 2})
-  assert.end()
 }

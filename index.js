@@ -1,7 +1,10 @@
 module.exports = estate
 
-var Readable = require('stream').Readable
+var old_Readable = require('readable-stream').Readable
+  , new_Readable = require('stream').Readable
   , util = require('util')
+
+var Readable = new_Readable || old_Readable
 
 util.inherits(Estate, Readable)
 
@@ -13,11 +16,15 @@ function Estate() {
   var options = {}
 
   options.objectMode = true
-  options.highWaterMark = 2
+
+  // only hold on to the most recent state
+  options.highWaterMark = 1
+
   Readable.call(this, options)
 
   this.state = {}
-  this.more = true
+  this.go = true
+
 }
 
 var cons = Estate
@@ -25,10 +32,22 @@ var cons = Estate
 
 proto.constructor = proto
 
+proto.close = function() {
+  this.push(null)
+  this.closed = true
+}
+
 proto.listen = function(to_ee, on_event, as_attrs) {
   var self = this
 
-  to_ee.on(on_event, function() {
+  to_ee.on(on_event, save)
+
+  function save() {
+    if(self.closed) {
+      // if we're closed, stop updating
+      return
+    }
+
     for(var i = 0, len = as_attrs.length; i < len; ++i) {
 
       if(arguments[i] === undefined) {
@@ -40,19 +59,17 @@ proto.listen = function(to_ee, on_event, as_attrs) {
       }
     }
 
-    self.more = self.unshift(self.state)
-
-    // This feels bad-- the goal is that in the event of back pressure, the
-    // stream still only holds on to the most recent state.
-    if(!self.more) {
-      self._readableState.buffer.pop()
-      self._readableState.length--
+    if(self.go) {
+      self.go = self.push(self.state)
     }
-
-  })
+  }
 
   return self
 }
 
-proto._read = function() {
+proto._read = function(n) {
+  // Nothing doing. Clients can read off the internal buffer populated by state
+  // changes. It's up to them to prevent the internal buffer from growing in
+  // case of back pressure
+  this.go = true
 }
